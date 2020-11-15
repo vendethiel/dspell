@@ -1,0 +1,141 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <div id="counter"></div>
+    <table id="container"></table>
+    <script type="text/javascript">
+var counter = document.getElementById('counter');
+var container = document.getElementById('container');
+
+var levels = [];
+var spells = [
+  {name: "Pression", unlock: 1},
+  {name: "Bond", unlock: 1},
+  {name: "Intimidation", unlock: 1},
+  {name: "Conpulsion", unlock: 3},
+  {name: "Épée divine", unlock: 6},
+  {name: "Épée du destin", unlock: 9},
+  {name: "Guide de Bravoure", unlock: 13},
+  {name: "Amplification", unlock: 17},
+  {name: "Épée Destructice", unlock: 21},
+  {name: "Couper", unlock: 26},
+  {name: "Souffle", unlock: 31},
+  {name: "Vitalité", unlock: 36},
+  {name: "Épée du Jugement", unlock: 42},
+  {name: "Puissance", unlock: 48},
+  {name: "Mutilation", unlock: 54},
+  {name: "Tempête de Puissance", unlock: 60},
+  {name: "Épée Céleste", unlock: 60},
+];
+
+var createButton = function(fn, text) {
+  return function (idx) {
+    var button = document.createElement('td');
+    button.innerHTML = text;
+    button.onclick = function () {
+      var currentLevel = levels[idx] ? levels[idx] : 1;
+      var newLevel = fn(currentLevel);
+      if (newLevel < 1 || newLevel > 6)
+        return;
+      levels[idx] = newLevel;
+      redrawSpell(idx);
+      updateHash();
+    };
+    return button;
+  };
+}
+
+var createMinus = createButton(i => i - 1, '-');
+var createPlus = createButton(i => i + 1, '+');
+function makeSpell(spell, i) {
+  var level = levels[i] ? levels[i] : 1;
+  var tr = document.createElement('tr');
+  
+  var nameTd = document.createElement('td');
+  nameTd.innerHTML = spell.name;
+
+  var levelTd = document.createElement('td');
+  levelTd.innerHTML = level;
+  
+  var minusTd = createMinus(i);
+  var plusTd = createPlus(i);
+
+  tr.appendChild(nameTd);
+  tr.appendChild(levelTd);
+  tr.appendChild(minusTd);
+  tr.appendChild(plusTd);
+  return tr;
+}
+
+function redraw() {
+  container.innerHTML = '';
+  spells.map(makeSpell).forEach(s => container.appendChild(s));
+  redrawCounter();
+}
+
+function redrawSpell(i) {
+  if (container.children.length != spells.length || container.children[i] == null) {
+    // Corrupted state, give up, redraw everything.
+    redraw();
+    return;
+  }
+  container.children[i].replaceWith(makeSpell(spells[i], i));
+  redrawCounter();
+}
+
+function redrawCounter() {
+  var total = levels.filter(x => x && x > 1).map(pointsForLevel).reduce((a, b) => a + b, 0);
+  var req = reqLevelUnbounded(total);
+  var text = 'Points utilisés : ' + total + '.<br/>Niveau nécessaire : ' + Math.min(200, req);
+  if (req > 200)
+    text += '.<br/>Parchemin de sort nécessaire : ' + (req - 200);
+  counter.innerHTML = text;
+}
+
+function reqLevelUnbounded(total) {
+  var lastLvl6Spell = findIndexReverse(levels, i => i == 6);
+  if (-1 == lastLvl6Spell)
+    return total + 1;
+  var unlock = spells[lastLvl6Spell].unlock;
+  return Math.max(total + 1, Math.min(200, 100 + unlock));
+}
+
+function pointsForLevel(level) {
+  if (level <= 1 || level > 6) {
+    return 0;
+  }
+  return level*(level-1)/2;
+}
+
+function findIndexReverse(xs, fn) {
+  var idx = xs.length;
+  while (idx--)
+    if (fn(xs[idx]))
+      return idx;
+  return -1;
+}
+loadHash(document.location.hash);
+redraw();
+
+function loadHash(hash) {
+  if (hash == "" || hash == "#" || hash[0] != "#") {
+    return;
+  }
+  for (var i = 1; i < hash.length; ++i) {
+    if (hash[i] > 1 && hash[i] <= 6 && i <= spells.length)
+      levels[i - 1] = +hash[i];
+  }
+}
+function updateHash() {
+  var text = "";
+  for (var i = levels.length; i >= 0; --i) {
+    if (levels[i] || text)
+      text = (levels[i] ? levels[i] : 1) + text;
+  }
+  document.location.hash = "#" + text;
+}
+    </script>
+  </body>
+</html>
