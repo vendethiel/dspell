@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bank'o'mat</title>
+    <style type="text/css">
+.item img {
+  width: 48px;
+  height: 48px;
+}
+    </style>
+  </head>
+  <body>
+    <h1>Load</h1>
+    <textarea id="bank"></textarea>
+    <button id="load">Load</button>
+    <hr/>
+    <h1>Crafting</h1>
+    <div id="crafting"></div>
+    <hr/>
+    <h1>Craftables</h1>
+    <div id="craftables"></div>
+    <hr/>
+    <h1>Bank</h1>
+    <div id="list"></div>
+  </body>
+  <script>
+var recipes = {
+  16043: [
+    {id: 9082, quantity: 3}
+  ]
+};
+
+var $crafting = document.getElementById('crafting');
+var $craftables = document.getElementById('craftables');
+var $bank = document.getElementById('bank');
+var $list = document.getElementById('list');
+var $load = document.getElementById('load');
+$load.onclick = function (e) {
+  reset(restore($bank.value));
+  e.preventDefault();
+};
+
+var bank = {};
+var crafting = {};
+if (localStorage.bank) {
+  bank = restore(localStorage.bank);
+  $bank.value = localStorage.bank;
+}
+
+renderBank();
+function reset(newBank) {
+  bank = newBank;
+  renderBank();
+  renderCraftables();
+}
+function restore(data) {
+  var newBank = {};
+  var els = data.split(';');
+  for (var el of els) {
+    var s = el.split(':');
+    if (s.length >= 2 && +s[0] > 0 && +s[1] > 0)
+      newBank[+s[0]] = +s[1];
+  }
+  return newBank;
+}
+function save() {
+  var bankStr = [];
+  for (var id in bank)
+    bankStr.push(id + ':' + bank[id]);
+  return bankStr.join(';');
+}
+
+function renderBank() {
+  $list.innerHTML = '';
+  for (var id in bank) {
+    var qua = getQua(id);
+    var text = qua == bank[id] ? qua : qua + ' (' + bank[id] + ')';
+    $list.appendChild(renderItem(id, text));
+  }
+}
+function renderItem(id, text) {
+  var $item = document.createElement('div');
+  $item.classList.add('item');
+  $item.innerHTML = "#" + id + " " + text;
+  var $image = document.createElement('img');
+  $image.src = 'https://retro.dofusbook.net/static/items/' + id + '_0.png';
+  $item.appendChild($image);
+  return $item;
+}
+
+function getQua(id) {
+  var qua = bank[id] || 0;
+  for (var recipeId in crafting) {
+    var recipe = recipes[recipeId];
+    for (var item of recipe) {
+      if (item.id == id) {
+        // How many per craft * how many are we crafting
+        qua -= item.quantity * crafting[recipeId];
+        break;
+      }
+    }
+  }
+  return Math.max(0, qua);
+}
+
+function renderCrafting() {
+  $crafting.innerHTML = '';
+  for (var id in crafting) {
+    var $item = renderItem(id, crafting[id]);
+    var $dec = document.createElement('button');
+    $dec.innerHTML = '-';
+    $dec.onclick = function (e) {
+      decCrafting(id);
+      e.preventDefault();
+    };
+    $item.appendChild($dec);
+    var $clear = document.createElement('button');
+    $clear.innerHTML = 'x';
+    $clear.onclick = function (e) {
+      clearCrafting(id);
+      e.preventDefault();
+    };
+    $item.appendChild($clear);
+    $crafting.appendChild($item);
+  }
+}
+function incCrafting(id, count) {
+  if (id in crafting)
+    crafting[id] += count;
+  else
+    crafting[id] = count;
+  render();
+}
+function decCrafting(id) {
+  if (id in crafting && crafting[id] > 1)
+    crafting[id]--;
+  else
+    delete crafting[id];
+  render();
+}
+function clearCrafting(id) {
+  delete crafting[id];
+  render();
+}
+
+function renderCraftables() {
+  $craftables.innerHTML = '';
+  var craftables = findCraftables();
+  for (var id in craftables)
+    $craftables.appendChild(renderCraftable(id, craftables[id]));
+}
+function renderCraftable(id, count) {
+  var $item = renderItem(id, count);
+  var $add = document.createElement('button');
+  $add.innerHTML = '+';
+  $add.onclick = function (e) {
+    incCrafting(id, 1);
+    e.preventDefault();
+  };
+  $item.appendChild($add);
+  var $addAll = document.createElement('button');
+  $addAll.innerHTML = '*';
+  $addAll.onclick = function (e) {
+    incCrafting(id, count);
+    e.preventDefault();
+  };
+  $item.appendChild($addAll);
+  return $item;
+}
+function findCraftables() {
+  var craftables = {};
+  for (var id in recipes) {
+    var cnt = countCraftable(recipes[id]);
+    if (cnt > 0)
+      craftables[id] = cnt;
+  }
+  return craftables;
+}
+function countCraftable(recipe) {
+  var max = 99999999999;
+  for (var item of recipe) {
+    max = Math.min(max, Math.floor(getQua(item.id) / item.quantity)); 
+  }
+  return max;
+}
+
+function render() {
+  renderCrafting();
+  renderCraftables();
+  renderBank();
+}
+  </script>
+</html>
