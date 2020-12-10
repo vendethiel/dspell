@@ -73,7 +73,7 @@ function save() {
 function renderBank() {
   $list.innerHTML = '';
   for (var id in bank) {
-    var qua = getQua(id);
+    var qua = getLeftoverQuantity(id);
     var text = qua == bank[id] ? qua : qua + ' (' + bank[id] + ')';
     $list.appendChild(renderItem(id, text));
   }
@@ -88,7 +88,7 @@ function renderItem(id, text) {
   return $item;
 }
 
-function getQua(id) {
+function getLeftoverQuantity(id) {
   var qua = bank[id] || 0;
   for (var recipeId in crafting) {
     var recipe = recipes[recipeId];
@@ -179,7 +179,7 @@ function findCraftables() {
 function countCraftable(recipe) {
   var max = 99999999999;
   for (var item of recipe) {
-    max = Math.min(max, Math.floor(getQua(item.id) / item.quantity)); 
+    max = Math.min(max, Math.floor(getLeftoverQuantity(item.id) / item.quantity)); 
   }
   return max;
 }
